@@ -1,0 +1,39 @@
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.videoArea {
+  display: flex;
+  justify-content: center;
+}
+
+.videoArea video {
+  width: 220px;
+  margin: 10px;
+  border-radius: 10px;
+}
+
+.callPopup {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: black;
+  padding: 20px;
+  border-radius: 10px;
+}
+
+.end {
+  background: red;
+  padding: 10px;
+}
