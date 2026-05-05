@@ -14,14 +14,33 @@ function App() {
 
   const bottomRef = useRef();
 
-  // SOCKET
+  // 🔥 DEBUG SOCKET
   useEffect(() => {
-    const s = io(API, { transports: ["websocket"] });
-    setSocket(s);
+    console.log("🚀 Trying to connect...");
+
+    const s = io(API, {
+      transports: ["polling"], // FORCE polling (important)
+      timeout: 20000
+    });
+
+    s.on("connect", () => {
+      console.log("✅ CONNECTED:", s.id);
+    });
+
+    s.on("connect_error", (err) => {
+      console.log("❌ CONNECT ERROR:", err.message);
+    });
+
+    s.on("disconnect", () => {
+      console.log("⚠️ DISCONNECTED");
+    });
 
     s.on("receive_message", (data) => {
+      console.log("📩 MESSAGE:", data);
       setChat(prev => [...prev, `${data.from}: ${data.text}`]);
     });
+
+    setSocket(s);
 
     return () => s.disconnect();
   }, []);
@@ -30,14 +49,18 @@ function App() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat]);
 
-  // LOGIN
   const login = () => {
+    console.log("👉 Login clicked");
+
+    if (!socket) return alert("Socket not ready");
     if (!username) return alert("Enter username");
+
     socket.emit("register_user", username);
   };
 
-  // SEND MESSAGE
   const sendMessage = () => {
+    console.log("👉 Send clicked");
+
     if (!msg || !target) return;
 
     socket.emit("send_message", {
@@ -50,7 +73,6 @@ function App() {
     setMsg("");
   };
 
-  // FILE UPLOAD
   const uploadFile = async (e) => {
     const file = e.target.files[0];
 
@@ -73,7 +95,6 @@ function App() {
     setChat(prev => [...prev, `Me (file): ${data.url}`]);
   };
 
-  // LOAD OLD MESSAGES
   const loadMore = async () => {
     const res = await fetch(`${API}/messages/${username}/${target}?page=${page}`);
     const data = await res.json();

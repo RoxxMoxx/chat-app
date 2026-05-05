@@ -14,10 +14,12 @@ const app = express();
 
 // ===== SECURITY =====
 app.use(helmet());
+
+// ✅ FIXED CORS (ALLOW ALL FOR NOW)
 app.use(cors({
-  origin: "https://tranquil-souffle-7fd7e7.netlify.app",
-  credentials: true
+  origin: "*"
 }));
+
 app.use(express.json());
 
 const limiter = rateLimit({
@@ -28,11 +30,12 @@ app.use(limiter);
 
 // ===== SERVER =====
 const server = http.createServer(app);
+
+// ✅ FIXED SOCKET CORS
 const io = new Server(server, {
   cors: {
-    origin: "https://tranquil-souffle-7fd7e7.netlify.app",
-    methods: ["GET", "POST"],
-    credentials: true
+    origin: "*",
+    methods: ["GET", "POST"]
   }
 });
 
@@ -105,6 +108,7 @@ app.get("/", (req, res) => {
   res.send("Server running 🚀");
 });
 
+// ===== MESSAGES ROUTE =====
 app.get("/messages/:user/:target", async (req, res) => {
   const { user, target } = req.params;
   const { page = 0 } = req.query;
@@ -121,6 +125,7 @@ app.get("/messages/:user/:target", async (req, res) => {
 
   res.json(msgs.reverse());
 });
+
 // ===== START =====
 server.listen(process.env.PORT || 3001, () =>
   console.log("Server running")
