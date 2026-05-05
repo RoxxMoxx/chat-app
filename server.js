@@ -14,7 +14,10 @@ const app = express();
 
 // ===== SECURITY =====
 app.use(helmet());
-app.use(cors({ origin: "*" }));
+app.use(cors({
+  origin: "https://tranquil-souffle-7fd7e7.netlify.app",
+  credentials: true
+}));
 app.use(express.json());
 
 const limiter = rateLimit({
@@ -26,7 +29,11 @@ app.use(limiter);
 // ===== SERVER =====
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: {
+    origin: "https://tranquil-souffle-7fd7e7.netlify.app",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
 });
 
 // ===== DB =====
