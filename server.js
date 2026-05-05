@@ -98,6 +98,22 @@ app.get("/", (req, res) => {
   res.send("Server running 🚀");
 });
 
+app.get("/messages/:user/:target", async (req, res) => {
+  const { user, target } = req.params;
+  const { page = 0 } = req.query;
+
+  const msgs = await Message.find({
+    $or: [
+      { from: user, to: target },
+      { from: target, to: user }
+    ]
+  })
+    .sort({ createdAt: -1 })
+    .skip(page * 20)
+    .limit(20);
+
+  res.json(msgs.reverse());
+});
 // ===== START =====
 server.listen(process.env.PORT || 3001, () =>
   console.log("Server running")

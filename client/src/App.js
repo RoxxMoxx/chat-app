@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import "./App.css";
 
-const API = "http://localhost:3001";
+const API = "https://chat-app-r1ts.onrender.com";
 
 function App() {
   const [socket, setSocket] = useState(null);
