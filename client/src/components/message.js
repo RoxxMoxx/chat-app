@@ -1,76 +1,107 @@
-function Message({ text, mine }) {
+function Message({
+
+  msg,
+
+  mine
+
+}) {
 
   // SAFETY
-  if (!text) return null;
+  if (!msg) return null;
 
-  // DEFAULT VALUES
-  let sender = "";
-  let content = text;
+  const {
 
-  // FIND FIRST ": "
-  const firstColon = text.indexOf(": ");
+    from,
 
-  // SPLIT ONLY IF VALID
-  if (firstColon !== -1) {
+    text,
 
-    sender = text.substring(0, firstColon);
+    type,
 
-    content = text.substring(firstColon + 2);
+    createdAt,
 
-  }
+    seen
 
-  // SAFE IMAGE CHECK
+  } = msg;
+
+  // IMAGE CHECK
   const isImage =
 
-    typeof content === "string" &&
+    type === "image";
 
-    content.includes("http") &&
+  // TIME
+  const time = createdAt
 
-    (
-      content.includes(".png") ||
-      content.includes(".jpg") ||
-      content.includes(".jpeg") ||
-      content.includes("cloudinary")
-    );
+    ? new Date(createdAt)
+        .toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit"
+        })
+
+    : "";
 
   return (
 
     <div
       className={`message ${
-        mine ? "me" : "them"
+        mine
+          ? "me"
+          : "them"
       }`}
     >
 
       {/* SENDER */}
-      {sender && (
-        <>
-          <strong>{sender}: </strong>
-          <br />
-        </>
-      )}
+      <strong>
+
+        {mine ? "Me" : from}
+
+      </strong>
+
+      <br />
 
       {/* IMAGE */}
       {isImage ? (
 
         <img
-          src={content}
+          src={text}
           alt=""
-          style={{
-            maxWidth: "250px",
-            borderRadius: "10px",
-            marginTop: "5px"
-          }}
         />
 
       ) : (
 
-        <span>{content}</span>
+        <span>{text}</span>
 
       )}
+
+      {/* FOOTER */}
+      <div
+        style={{
+          marginTop: "6px",
+          fontSize: "12px",
+          opacity: 0.7,
+          textAlign: "right"
+        }}
+      >
+
+        {time}
+
+        {/* SEEN */}
+        {mine && (
+          <>
+            {" "}
+            {
+              seen
+                ? "✓✓"
+                : "✓"
+            }
+          </>
+        )}
+
+      </div>
 
     </div>
 
   );
+
 }
 
 export default Message;

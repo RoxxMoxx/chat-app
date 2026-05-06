@@ -1,21 +1,13 @@
 require("dotenv").config();
 
 const express = require("express");
-
 const http = require("http");
-
 const mongoose = require("mongoose");
-
 const cors = require("cors");
-
 const helmet = require("helmet");
-
 const rateLimit = require("express-rate-limit");
-
 const multer = require("multer");
-
 const cloudinary = require("cloudinary").v2;
-
 const { Server } = require("socket.io");
 
 const app = express();
@@ -64,7 +56,7 @@ mongoose.connect(process.env.MONGO_URI)
   });
 
 
-// ================= MESSAGE MODEL =================
+// ================= MODEL =================
 
 const Message = mongoose.model(
 
@@ -78,13 +70,11 @@ const Message = mongoose.model(
 
     text: String,
 
-    // text / image / voice / etc
     type: {
       type: String,
       default: "text"
     },
 
-    // message seen status
     seen: {
       type: Boolean,
       default: false
@@ -113,7 +103,7 @@ cloudinary.config({
 });
 
 
-// ================= FILE UPLOAD =================
+// ================= UPLOAD =================
 
 const upload = multer({
   dest: "uploads/"
@@ -134,17 +124,13 @@ app.post(
       );
 
       res.json({
-
         url: result.secure_url
-
       });
 
     } catch {
 
       res.status(500).json({
-
         error: "Upload failed"
-
       });
 
     }
@@ -154,7 +140,7 @@ app.post(
 );
 
 
-// ================= ONLINE USERS =================
+// ================= USERS =================
 
 const users = {};
 
@@ -165,7 +151,8 @@ io.on("connection", (socket) => {
 
   console.log("⚡ User connected");
 
-  // REGISTER USER
+
+  // REGISTER
   socket.on(
 
     "register_user",
@@ -174,9 +161,6 @@ io.on("connection", (socket) => {
 
       users[username] = socket.id;
 
-      console.log("👤 Registered:", username);
-
-      // SEND OLD MESSAGES
       const msgs = await Message.find({
 
         to: username
@@ -222,7 +206,7 @@ io.on("connection", (socket) => {
 
         });
 
-        // SEND TO RECEIVER
+        // RECEIVER
         if (users[to]) {
 
           io.to(users[to]).emit(
@@ -232,7 +216,7 @@ io.on("connection", (socket) => {
 
         }
 
-        // SEND BACK TO SENDER
+        // SENDER
         socket.emit(
           "message_sent",
           msgDoc
@@ -249,12 +233,12 @@ io.on("connection", (socket) => {
   );
 
 
-  // MESSAGE SEEN
+  // SEEN
   socket.on(
 
     "message_seen",
 
-    async (messageId) => {
+    async ({ messageId, sender }) => {
 
       try {
 
@@ -267,6 +251,19 @@ io.on("connection", (socket) => {
           }
 
         );
+
+        // NOTIFY SENDER
+        if (users[sender]) {
+
+          io.to(users[sender]).emit(
+
+            "message_seen_update",
+
+            messageId
+
+          );
+
+        }
 
       } catch (err) {
 
@@ -306,8 +303,6 @@ io.on("connection", (socket) => {
   // DISCONNECT
   socket.on("disconnect", () => {
 
-    console.log("❌ User disconnected");
-
     for (let u in users) {
 
       if (users[u] === socket.id) {
@@ -323,7 +318,7 @@ io.on("connection", (socket) => {
 });
 
 
-// ================= TEST ROUTE =================
+// ================= TEST =================
 
 app.get("/", (req, res) => {
 
@@ -332,7 +327,7 @@ app.get("/", (req, res) => {
 });
 
 
-// ================= LOAD OLD MESSAGES =================
+// ================= LOAD MESSAGES =================
 
 app.get(
 
@@ -363,9 +358,7 @@ app.get(
     })
 
       .sort({
-
         createdAt: -1
-
       })
 
       .skip(page * 20)

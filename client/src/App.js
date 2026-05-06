@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+
 import io from "socket.io-client";
 
 import EmojiPicker from "emoji-picker-react";
@@ -26,15 +27,14 @@ function App() {
 
   const [connected, setConnected] = useState(false);
 
-  // ✅ EMOJI STATE
   const [showEmoji, setShowEmoji] = useState(false);
+
+  const [typing, setTyping] = useState("");
 
   const bottomRef = useRef();
 
   // SOCKET
   useEffect(() => {
-
-    console.log("🚀 Connecting...");
 
     const s = io(API, {
       transports: ["polling"],
@@ -43,29 +43,92 @@ function App() {
 
     s.on("connect", () => {
 
-      console.log("✅ Connected:", s.id);
-
       setConnected(true);
 
     });
 
     s.on("disconnect", () => {
 
-      console.log("❌ Disconnected");
-
       setConnected(false);
 
     });
 
+    // RECEIVE
     s.on("receive_message", (data) => {
 
       setChat(prev => [
 
         ...prev,
 
-        `${data.from}: ${data.text}`
+        data
 
       ]);
+
+      // SEEN
+      s.emit(
+
+        "message_seen",
+
+        {
+          messageId: data._id,
+          sender: data.from
+        }
+
+      );
+
+    });
+
+    // SENT
+    s.on("message_sent", (data) => {
+
+      setChat(prev => [
+
+        ...prev,
+
+        data
+
+      ]);
+
+    });
+
+    // SEEN UPDATE
+    s.on(
+
+      "message_seen_update",
+
+      (messageId) => {
+
+        setChat(prev =>
+
+          prev.map(msg =>
+
+            msg._id === messageId
+
+              ? {
+                  ...msg,
+                  seen: true
+                }
+
+              : msg
+
+          )
+
+        );
+
+      }
+
+    );
+
+    // TYPING
+    s.on("typing", (from) => {
+
+      setTyping(`${from} is typing`);
+
+      setTimeout(() => {
+
+        setTyping("");
+
+      }, 1500);
 
     });
 
@@ -98,39 +161,46 @@ function App() {
       username
     );
 
-    alert("Logged in as " + username);
+    alert("Logged in");
 
   };
 
-  // SEND MESSAGE
+  // SEND
   const sendMessage = () => {
 
     if (!msg || !target)
       return;
 
     socket.emit(
+
       "send_message",
+
       {
         to: target,
         from: username,
         text: msg,
+        type: "text"
       }
+
     );
-
-    setChat(prev => [
-
-      ...prev,
-
-      `Me: ${msg}`
-
-    ]);
 
     setMsg("");
 
   };
 
-  // ENTER KEY SEND
+  // KEYDOWN
   const handleKeyDown = (e) => {
+
+    socket.emit(
+
+      "typing",
+
+      {
+        to: target,
+        from: username
+      }
+
+    );
 
     if (e.key === "Enter") {
 
@@ -140,7 +210,7 @@ function App() {
 
   };
 
-  // ✅ EMOJI CLICK
+  // EMOJI
   const onEmojiClick = (emojiData) => {
 
     setMsg(prev =>
@@ -151,7 +221,7 @@ function App() {
 
   };
 
-  // FILE UPLOAD
+  // FILE
   const uploadFile = async (e) => {
 
     const file = e.target.files[0];
@@ -165,31 +235,30 @@ function App() {
     try {
 
       const res = await fetch(
+
         API + "/upload",
+
         {
           method: "POST",
           body: form,
         }
+
       );
 
       const data = await res.json();
 
       socket.emit(
+
         "send_message",
+
         {
           to: target,
           from: username,
           text: data.url,
+          type: "image"
         }
+
       );
-
-      setChat(prev => [
-
-        ...prev,
-
-        `Me: ${data.url}`
-
-      ]);
 
     } catch {
 
@@ -199,22 +268,22 @@ function App() {
 
   };
 
-  // LOAD OLD MESSAGES
+  // LOAD OLD
   const loadMore = async () => {
 
     try {
 
       const res = await fetch(
+
         `${API}/messages/${username}/${target}?page=${page}`
+
       );
 
       const data = await res.json();
 
       setChat(prev => [
 
-        ...data.map(
-          d => `${d.from}: ${d.text}`
-        ),
+        ...data,
 
         ...prev
 
@@ -224,7 +293,7 @@ function App() {
 
     } catch {
 
-      alert("Failed to load");
+      alert("Failed");
 
     }
 
@@ -234,13 +303,11 @@ function App() {
 
     <div className="app">
 
-      {/* SIDEBAR */}
       <Sidebar
         username={username}
         target={target}
       />
 
-      {/* MAIN CHAT */}
       <div className="chatSection">
 
         {/* TOPBAR */}
@@ -274,14 +341,12 @@ function App() {
             Load Older
           </button>
 
-          {/* STATUS */}
           <div
             style={{
               marginLeft: "auto",
               color: connected
                 ? "#00d4aa"
-                : "red",
-              fontWeight: "bold"
+                : "red"
             }}
           >
 
@@ -298,13 +363,32 @@ function App() {
         {/* CHAT */}
         <ChatBox
           chat={chat}
+          username={username}
           bottomRef={bottomRef}
         />
 
-        {/* INPUT AREA */}
+        {/* TYPING */}
+        <div className="typingArea">
+
+          {typing && (
+
+            <div className="typingBubble">
+
+              {typing}
+
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+
+            </div>
+
+          )}
+
+        </div>
+
+        {/* INPUT */}
         <div className="inputArea">
 
-          {/* EMOJI BUTTON */}
           <button
             onClick={() =>
               setShowEmoji(
@@ -315,7 +399,6 @@ function App() {
             😊
           </button>
 
-          {/* EMOJI PICKER */}
           {showEmoji && (
 
             <div
@@ -336,10 +419,9 @@ function App() {
 
           )}
 
-          {/* MESSAGE INPUT */}
           <input
             value={msg}
-            placeholder="Type a message"
+            placeholder="Type message"
             onChange={e =>
               setMsg(
                 e.target.value
@@ -348,12 +430,10 @@ function App() {
             onKeyDown={handleKeyDown}
           />
 
-          {/* SEND */}
           <button onClick={sendMessage}>
             Send
           </button>
 
-          {/* FILE */}
           <input
             type="file"
             onChange={uploadFile}
